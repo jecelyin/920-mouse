@@ -14,6 +14,8 @@ import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.ImageView;
 
+import java.io.IOException;
+
 /**
  * @author:Jack Tony
  * <p/>
@@ -41,6 +43,7 @@ public class FloatingService extends Service {
     LayoutInflater inflater;
 
     private Dialog mDialog;
+    static Process process;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -56,7 +59,11 @@ public class FloatingService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
+        try {
+            process = Runtime.getRuntime().exec("su");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 //        initFloating();//设置悬浮窗图标
         return super.onStartCommand(intent, flags, startId);
     }

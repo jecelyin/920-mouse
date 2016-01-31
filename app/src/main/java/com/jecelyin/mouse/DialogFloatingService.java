@@ -5,6 +5,7 @@ import android.app.Service;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -17,6 +18,7 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 import java.io.DataOutputStream;
+import java.io.IOException;
 
 public class DialogFloatingService extends Service implements View.OnTouchListener {
     //开始触控的坐标，移动时的坐标（相对于屏幕左上角的坐标）
@@ -67,10 +69,26 @@ public class DialogFloatingService extends Service implements View.OnTouchListen
         }
     }
 
+    public int getStatusBarHeight() {
+        int result = 0;
+        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
     /**
      * 初始化
      */
     private void initWindow() {
+        if(FloatingService.process == null) {
+            try {
+                FloatingService.process = Runtime.getRuntime().exec("su");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         mDialog = new Dialog(this, R.style.TransparentDialog);
         mDialog.getWindow().setType((WindowManager.LayoutParams.TYPE_SYSTEM_ALERT));
 
@@ -95,9 +113,11 @@ public class DialogFloatingService extends Service implements View.OnTouchListen
                     @Override
                     public void run() {
                         try {
-                            Process p = Runtime.getRuntime().exec("su");
-                            DataOutputStream os = new DataOutputStream(p.getOutputStream());
-                            os.writeBytes(String.format("input touchscreen tap %d %d\n", mX, mY));
+                            FloatingService.process = Runtime.getRuntime().exec("su");
+                            DataOutputStream os = new DataOutputStream(FloatingService.process.getOutputStream());
+                            int statusBarHeight =  getStatusBarHeight();
+                            Log.d(DialogFloatingService.class.getName(), "statusBarHeight=" + statusBarHeight);
+                            os.writeBytes(String.format("input touchscreen tap %d %d\n", mX, mY + statusBarHeight));
                             os.writeBytes("exit\n");
                             os.flush();
                         } catch (Exception e) {
